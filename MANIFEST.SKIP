@@ -1,0 +1,6 @@
+MANIFEST.SKIP
+cover_db/*
+weaver.ini
+.git/*
+tidyall.ini
+.github/
