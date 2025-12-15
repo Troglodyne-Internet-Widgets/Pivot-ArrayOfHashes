@@ -1,7 +1,12 @@
 package Pivot::ArrayOfHashes;
 
+# ABSTRACT: Pivot arrays of hashes, such as those returned by DBI
+
 use strict;
 use warnings;
+
+use 5.006;
+use v5.12.0;    # Before 5.006, v5.10.0 would not be understood.
 
 use UUID qw{uuid};
 use List::Util qw{uniq};
@@ -19,6 +24,9 @@ Groups by the columns not pivoted on/into.  This may get out of hand if you have
 See SYNOPSIS below for a detailed example.
 
 =head1 RATIONALE
+
+Nowadays you would be recommended to do this in-db like most things,
+however in most cases a generic solution to pivoting requires extensions which may or not be available in your environment.
 
 No module on CPAN as of writing, despite many venerable pivoters existing, have such a simple interface.
 The only one I am aware of operating on similar data accomplishes the same with 4x more code.
