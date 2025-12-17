@@ -122,7 +122,7 @@ sub pivot {
         my @s;
         foreach my $key (sort keys(%$row)) {
             next if $key eq $opts{pivot_on} || $key eq $opts{pivot_into};
-            push(@s, "$key$data_splitter$row->{$key}");
+            push(@s, ($key // '').$data_splitter.($row->{$key} // ''));
         }
         push(@set, join($row_splitter, @s));
     }
@@ -131,7 +131,10 @@ sub pivot {
     my @grouped = map {
         my $subj = $_;
         my %h = map {
-            split(/\Q$data_splitter\E/, $_)
+            # We need to pad with undef in some cases.
+            my @out = split(/\Q$data_splitter\E/, $_);
+            push(@out,undef) if @out == 1;
+            @out
         } (split(/\Q$row_splitter\E/, $subj));
         \%h
     } uniq(@set);
@@ -148,7 +151,7 @@ sub pivot {
 
         foreach my $row (@$rows) {
             # Append this row's info iff we are in the group.
-            next unless scalar(grep { $subj->{$_} eq $row->{$_} } @orig_keys) == scalar(@orig_keys);
+            next unless scalar(grep { ($subj->{$_} // '') eq ($row->{$_} // '') } @orig_keys) == scalar(@orig_keys);
 
             my $field       = $row->{$opts{pivot_into}};
             $subj->{$field} = $row->{$opts{pivot_on}};
