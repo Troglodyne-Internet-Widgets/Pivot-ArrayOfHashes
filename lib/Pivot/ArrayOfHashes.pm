@@ -9,7 +9,8 @@ use 5.006;
 use v5.12.0;    # Before 5.006, v5.10.0 would not be understood.
 
 use UUID qw{uuid};
-use List::Util qw{uniq};
+use List::Util qw{uniq any};
+
 use parent 'Exporter';
 our @EXPORT_OK = qw{pivot};
 
@@ -115,17 +116,22 @@ sub pivot {
     my $data_splitter = uuid();
     my $row_splitter  = uuid();
 
+    # make sure we always use the same order of keys in comparisons
+    my @key_order = sort grep { my $subj=$_;  !any { $_ eq $subj } ($opts{pivot_on}, $opts{pivot_into}) } keys(%{$rows->[0]});
+
     # First, we group by the nonspecified cols.
     # We do this by creating string aggregations of the relevant data.
     my @set;
     foreach my $row (@$rows) {
         my @s;
-        foreach my $key (sort keys(%$row)) {
-            next if $key eq $opts{pivot_on} || $key eq $opts{pivot_into};
+        foreach my $key (@key_order) {
             push(@s, ($key // '').$data_splitter.($row->{$key} // ''));
         }
         push(@set, join($row_splitter, @s));
+        # Stash text rep of row for later
+        $row->{_hash} = join('', map { $_ || '' } @$row{@key_order});
     }
+
     # Next, we reverse the process into a hash after a uniq() filter.
     # Whether this is done with hash keys or uniq() is of little consequence, we would have to reexpand them.
     my @grouped = map {
@@ -139,6 +145,7 @@ sub pivot {
         \%h
     } uniq(@set);
 
+
     # Next, we have to pivot.
     @grouped = map {
         my $subj = $_;
@@ -148,11 +155,11 @@ sub pivot {
         foreach my $param (@data) {
             $subj->{$param} = undef;
         }
+        my $hash = join('', map { $_ || '' } @$subj{@key_order});
+        my @relevant_rows = grep { $hash eq $_->{_hash} } @$rows;
 
-        foreach my $row (@$rows) {
+        foreach my $row (@relevant_rows) {
             # Append this row's info iff we are in the group.
-            next unless scalar(grep { ($subj->{$_} // '') eq ($row->{$_} // '') } @orig_keys) == scalar(@orig_keys);
-
             my $field       = $row->{$opts{pivot_into}};
             $subj->{$field} = $row->{$opts{pivot_on}};
         }
