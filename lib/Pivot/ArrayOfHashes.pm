@@ -149,7 +149,6 @@ sub pivot {
     # Next, we have to pivot.
     @grouped = map {
         my $subj = $_;
-        my @orig_keys = keys(%$subj);
 
         # Make sure to null-fill all the relevant pivoted data points.
         foreach my $param (@data) {
