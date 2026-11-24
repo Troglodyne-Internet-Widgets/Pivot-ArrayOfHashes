@@ -2,13 +2,12 @@ package Pivot::ArrayOfHashes;
 
 # ABSTRACT: Pivot arrays of hashes, such as those returned by DBI
 
+use 5.014;
 use strict;
-use warnings;
+use warnings FATAL => 'all';
+no autovivification;
 
-use 5.006;
-use v5.12.0;    # Before 5.006, v5.10.0 would not be understood.
-
-use UUID qw{uuid};
+use UUID       qw{uuid};
 use List::Util qw{uniq any};
 
 use parent 'Exporter';
@@ -107,17 +106,20 @@ You should never get more rows than you input, and will likely get substantially
 =cut
 
 sub pivot {
-    my ($rows, %opts) = @_;
+    my ( $rows, %opts ) = @_;
 
     # Extract the pivoted cols.
-    my @data = uniq map { $_->{$opts{pivot_into}} } @$rows;
+    my @data = uniq map { $_->{ $opts{pivot_into} } } @$rows;
 
     # Vital for grouping the data.
     my $data_splitter = uuid();
     my $row_splitter  = uuid();
 
     # make sure we always use the same order of keys in comparisons
-    my @key_order = sort grep { my $subj=$_;  !any { $_ eq $subj } ($opts{pivot_on}, $opts{pivot_into}) } keys(%{$rows->[0]});
+    my @key_order = sort grep {
+        my $subj = $_;
+        !any { $_ eq $subj } @opts{qw{pivot_on pivot_into}}
+    } keys( %{ $rows->[0] } );
 
     # First, we group by the nonspecified cols.
     # We do this by creating string aggregations of the relevant data.
@@ -125,26 +127,27 @@ sub pivot {
     foreach my $row (@$rows) {
         my @s;
         foreach my $key (@key_order) {
-            push(@s, ($key // '').$data_splitter.($row->{$key} // ''));
+            push( @s, ( $key // '' ) . $data_splitter . ( $row->{$key} // '' ) );
         }
-        push(@set, join($row_splitter, @s));
+        push( @set, join( $row_splitter, @s ) );
+
         # Stash text rep of row for later
-        $row->{_hash} = join('', map { $_ || '' } @$row{@key_order});
+        $row->{_hash} = join( '', map { $_ || '' } @$row{@key_order} );
     }
 
     # Next, we reverse the process into a hash after a uniq() filter.
     # Whether this is done with hash keys or uniq() is of little consequence, we would have to reexpand them.
     my @grouped = map {
         my $subj = $_;
-        my %h = map {
+        my %h    = map {
+
             # We need to pad with undef in some cases.
-            my @out = split(/\Q$data_splitter\E/, $_);
-            push(@out,undef) if @out == 1;
+            my @out = split( /\Q$data_splitter\E/aaxs, $_ );
+            push( @out, undef ) if @out == 1;
             @out
-        } (split(/\Q$row_splitter\E/, $subj));
+        } ( split( /\Q$row_splitter\E/aaxs, $subj ) );
         \%h
     } uniq(@set);
-
 
     # Next, we have to pivot.
     @grouped = map {
@@ -154,13 +157,14 @@ sub pivot {
         foreach my $param (@data) {
             $subj->{$param} = undef;
         }
-        my $hash = join('', map { $_ || '' } @$subj{@key_order});
+        my $hash          = join( '', map { $_ || '' } @$subj{@key_order} );
         my @relevant_rows = grep { $hash eq $_->{_hash} } @$rows;
 
         foreach my $row (@relevant_rows) {
+
             # Append this row's info iff we are in the group.
-            my $field       = $row->{$opts{pivot_into}};
-            $subj->{$field} = $row->{$opts{pivot_on}};
+            my $field = $row->{ $opts{pivot_into} };
+            $subj->{$field} = $row->{ $opts{pivot_on} };
         }
         $subj
     } @grouped;

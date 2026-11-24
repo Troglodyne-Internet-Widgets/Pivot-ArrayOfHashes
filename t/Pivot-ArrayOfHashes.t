@@ -1,8 +1,10 @@
+package main;
+
+use 5.014;
 use strict;
-use warnings;
+use warnings FATAL => 'all';
 
 use Test::More tests => 1;
-use Test::Deep;
 use FindBin::libs;
 
 use Pivot::ArrayOfHashes qw{pivot};
@@ -25,7 +27,7 @@ my %options = (
 );
 
 # Using our function!
-my @pivoted = pivot(\@rows, %options);
+my @pivoted = pivot( \@rows, %options );
 
 # Returns an array like so:
 my $r = [
@@ -35,15 +37,15 @@ my $r = [
         '2025-01-01' => 'Chase, Hugs',
         '2025-01-02' => 'Chase, Tickle, Hugs',
         '2025-01-03' => 'Tickle',
-        },
-        {
+    },
+    {
         'name'       => 'wilma',
         'lname'      => 'flintstone',
         '2025-01-01' => 'Chase, Tickle, Hugs',
         '2025-01-02' => 'Tickle',
         '2025-01-03' => undef,
-        },
-        {
+    },
+    {
         'name'       => 'fred',
         'lname'      => 'rubble',
         '2025-01-01' => 'Chase, Hugs',
@@ -52,4 +54,14 @@ my $r = [
     },
 ];
 
-is_deeply(\@pivoted, $r, "Pivoted data as expected");
+is_deeply( \@pivoted, $r, "Pivoted data as expected" );
+
+1;
+
+__END__
+
+=head1 NAME
+
+main - test that pivot() turns rows into columns
+
+=cut
